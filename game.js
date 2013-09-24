@@ -41,10 +41,22 @@ $(document).ready(function () {
     equationImg.src = "equation.png";
 
 
-    function makeEquation(x, y) {
+    function fireEquation() {
         var eq = equation.clone();
-        eq.setX(x);
-        eq.setY(y);
+        var pos = sheldon.getAbsolutePosition();
+        eq.setX(pos.x);
+        eq.setY(pos.y);
+        layer.add(eq);
+        var anim = new Kinetic.Animation(function(frame) {
+            var pos = eq.getAbsolutePosition();
+            eq.setX(pos.x + 8);
+            if (pos.x > stage.attrs.width) {
+                anim.stop();
+                eq.remove();
+                layer.draw();
+            }
+        }, layer);
+        anim.start();
         return eq;
     }
 
@@ -54,9 +66,6 @@ $(document).ready(function () {
         }
 
         layer.add(sheldon);
-
-        var currentEq = makeEquation(300, 100);
-        layer.add(currentEq);
 
         stage.on('mousemove', function () {
             var pointerPos = stage.getPointerPosition();
@@ -69,6 +78,7 @@ $(document).ready(function () {
 
         stage.on('mousedown', function () {
             sheldon.setScale(0.95);
+            var currentEq = fireEquation();
             layer.draw();
         });
 
