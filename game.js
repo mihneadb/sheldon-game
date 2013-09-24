@@ -40,6 +40,21 @@ $(document).ready(function () {
     };
     equationImg.src = "equation.png";
 
+    var squares = new Array();
+    for (var i = 0; i < 8; i++) {
+        var square = new Kinetic.Rect({
+            x: stage.attrs.width - 100 - getRandomInt(50, 200),
+            y: 70 + 60 * i,
+            width: 50,
+            height: 50,
+            fill: 'green',
+            stroke: 'black',
+            strokeWidth: 4,
+        });
+        layer.add(square);
+        squares.push(square);
+    }
+
 
     function fireEquation() {
         var eq = equation.clone();
@@ -54,10 +69,45 @@ $(document).ready(function () {
                 anim.stop();
                 eq.remove();
                 layer.draw();
+                return;
             }
+            checkCollisions(eq);
         }, layer);
         anim.start();
+        eq.anim = anim;
         return eq;
+    }
+
+    function getCenter(shape) {
+        var pos = shape.getAbsolutePosition();
+        return {
+            x: pos.x + shape.attrs.width / 2,
+            y: pos.y + shape.attrs.height / 2,
+        };
+    }
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+    }
+
+    function checkCollisions(equation) {
+        var epsX = 10;
+        var epsY = 40;
+        var eqPos = getCenter(equation);
+        eqPos.x += equation.attrs.width / 2;
+        for (var i = 0; i < squares.length; i++) {
+            var square = squares[i];
+            var pos = getCenter(square);
+            if (Math.abs(pos.x - eqPos.x) <= epsX &&
+                Math.abs(pos.y - eqPos.y) <= epsY) {
+                equation.anim.stop();
+                equation.remove();
+                square.remove();
+                squares.splice(i, 1);
+                break;
+            }
+        }
+        layer.draw();
     }
 
     function gameLoop() {
