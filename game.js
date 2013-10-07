@@ -1,6 +1,7 @@
 $(document).ready(function () {
     var loadCount = 0;
-    var TOTAL_COUNT = 2;
+    var TOTAL_COUNT = 3;
+    var SQUARES_PER_COL = 8;
 
     var stage = new Kinetic.Stage({
         container: 'container',
@@ -21,9 +22,25 @@ $(document).ready(function () {
             image: sheldonImg,
         });
         loadCount++;
-        gameLoop();
+        gameMain();
     };
     sheldonImg.src = "sheldon.png";
+
+    var bazinga = null;
+    var bazingaImg = new Image();
+    bazingaImg.onload = function () {
+        bazinga = new Kinetic.Image({
+            x: 300,
+            y: 100,
+            width: 100,
+            height: 100,
+            image: bazingaImg,
+            opacity: 0,
+        });
+        loadCount++;
+        gameMain();
+    };
+    bazingaImg.src = "bazinga.png";
 
     var equation = null;
     var equationImg = new Image();
@@ -36,23 +53,27 @@ $(document).ready(function () {
             image: equationImg,
         });
         loadCount++;
-        gameLoop();
+        gameMain();
     };
     equationImg.src = "equation.png";
 
     var squares = new Array();
-    for (var i = 0; i < 8; i++) {
-        var square = new Kinetic.Rect({
-            x: stage.attrs.width - 100 - getRandomInt(50, 200),
-            y: 70 + 60 * i,
-            width: 50,
-            height: 50,
-            fill: 'green',
-            stroke: 'black',
-            strokeWidth: 4,
-        });
-        layer.add(square);
-        squares.push(square);
+    addSquares(SQUARES_PER_COL);
+
+    function addSquares(num) {
+        for (var i = 0; i < num; i++) {
+            var square = new Kinetic.Rect({
+                x: stage.attrs.width - 20 - getRandomInt(50, 200),
+                y: 70 + 60 * i,
+                width: 50,
+                height: 50,
+                fill: 'green',
+                stroke: 'black',
+                strokeWidth: 4,
+            });
+            layer.add(square);
+            squares.push(square);
+        }
     }
 
 
@@ -78,6 +99,23 @@ $(document).ready(function () {
         return eq;
     }
 
+    function showBazinga(x, y) {
+        var baz = bazinga.clone();
+        baz.setX(x - 50);
+        baz.setY(y - 50);
+        layer.add(baz);
+        var anim = new Kinetic.Animation(function (frame) {
+            baz.setOpacity(frame.time / 300);
+        }, layer);
+        anim.start();
+        baz.draw();
+        setTimeout(function () {
+            baz.remove();
+            anim.stop();
+            layer.draw();
+        }, 300);
+    }
+
     function getCenter(shape) {
         var pos = shape.getAbsolutePosition();
         return {
@@ -98,19 +136,42 @@ $(document).ready(function () {
         for (var i = 0; i < squares.length; i++) {
             var square = squares[i];
             var pos = getCenter(square);
+
             if (Math.abs(pos.x - eqPos.x) <= epsX &&
                 Math.abs(pos.y - eqPos.y) <= epsY) {
                 equation.anim.stop();
                 equation.remove();
                 square.remove();
                 squares.splice(i, 1);
+
+                showBazinga(pos.x, pos.y);
+
+                var audio = document.getElementById("bazingaSound");
+                audio.pause();
+                audio.currentTime = 0;
+                audio.play();
+
+                score++;
+
                 break;
             }
         }
         layer.draw();
     }
 
-    function gameLoop() {
+    var score = 0;
+    var scoreText = new Kinetic.Text({
+        x: stage.getWidth() / 2,
+        y: 15,
+        text: score + "",
+        fontSize: 30,
+        fontFamily: "Calibri",
+        fill: "green",
+    });
+    layer.add(scoreText);
+
+    var gameTickID = null;
+    function gameMain() {
         if (loadCount !== TOTAL_COUNT) {
             return;
         }
@@ -138,6 +199,33 @@ $(document).ready(function () {
         });
 
         stage.add(layer);
+
+        gameTickID = setInterval(gameTick, 500);
+    }
+
+    var tickCount = 1;
+    function gameTick () {
+        scoreText.setText(score);
+        if (tickCount % 15 == 0) {
+            addSquares(SQUARES_PER_COL);
+        }
+        for (var i = 0; i < squares.length; i++) {
+            var sq = squares[i];
+            var pos = sq.getAbsolutePosition()
+            sq.setX(pos.x - 20);
+            if (pos.x <= 0) {
+                // you lost!!
+                scoreText.setText("You lost!");
+                scoreText.setFill("red");
+                scoreText.setFontStyle("bold");
+                scoreText.setFontSize(30);
+                clearInterval(gameTickID);
+                // fire won't destroy anything anymore
+                checkCollisions = function () {};
+            }
+        }
+        stage.draw();
+        tickCount++;
     }
 
 });
